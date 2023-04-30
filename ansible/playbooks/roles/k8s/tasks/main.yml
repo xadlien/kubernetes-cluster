@@ -1,0 +1,126 @@
+- name: update node
+  apt:
+    upgrade: true
+    update_cache: true
+  tags:
+  - k8s
+
+- name: check if swap is disabled
+  shell: egrep -q '^[^#].*swap.*$' /etc/fstab
+  register: swapcheck
+  ignore_errors: true
+  tags:
+  - k8s
+
+- name: Disable SWAP since kubernetes can't work with swap enabled (1/2)
+  shell: |
+    swapoff -a
+  when: swapcheck.rc == 0
+  tags:
+  - k8s
+
+- name: Disable SWAP in fstab since kubernetes can't work with swap enabled (2/2)
+  replace:
+    path: /etc/fstab
+    regexp: '^([^#].*?\sswap\s+sw\s+.*)$'
+    replace: '# \1'
+  when: swapcheck.rc == 0
+  tags:
+  - k8s
+
+- name: install necessary dependencies for kubernetes
+  apt:
+    name:
+    - apt-transport-https 
+    - ca-certificates 
+    - curl
+    - docker
+    - docker-compose
+    state: latest
+    update_cache: false 
+  tags:
+  - k8s
+
+- name: get google gpg key
+  get_url:
+    url: https://packages.cloud.google.com/apt/doc/apt-key.gpg
+    dest: /usr/share/keyrings/kubernetes-archive-keyring.gpg
+  tags:
+  - k8s
+
+- name: copy kubernetes apt file
+  copy:
+    src: kubernetes.list
+    dest: /etc/apt/sources.list.d/kubernetes.list
+  tags:
+  - k8s
+
+- name: install kubernetes
+  apt:
+    name:
+    - kubelet
+    - kubeadm
+    - kubectl
+    state: latest
+    update_cache: true
+  tags:
+  - k8s
+
+- name: hold kubernetes packages
+  dpkg_selections:
+    name: "{{ item }}"
+    selection: hold
+  with_items:
+  - kubeadm
+  - kubelet
+  - kubectl
+  tags:
+  - k8s
+
+- name: copy docker daemon json
+  copy:
+    src: daemon.json
+    dest: /etc/docker/daemon.json
+  tags:
+  - k8s
+
+- name: restart docker
+  systemd:
+    name: docker
+    state: restarted
+  tags:
+  - k8s
+
+- name: add helm apt key
+  apt_key:
+    url: https://baltocdn.com/helm/signing.asc
+    state: present
+
+- name: copy helm apt file
+  copy:
+    src: helm-stable-debian.list
+    dest: /etc/apt/sources.list.d/helm-stable-debian.list
+  tags:
+  - k8s
+
+- name: install helm
+  apt:
+    update_cache: true 
+    name: helm
+    state: latest
+  tags:
+  - k8s
+
+- name: include control node tasks
+  include_tasks: ../roles/k8s/tasks/control.yml
+  when: '"k8s_control" in group_names'
+  tags:
+  - k8s
+  - k8s_control
+
+- name: include worker node tasks
+  include_tasks: worker.yml
+  when: '"k8s_worker" in group_names'
+  tags:
+  - k8s
+  - k8s_worker

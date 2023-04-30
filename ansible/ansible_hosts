@@ -1,0 +1,10 @@
+[k8s:children]
+k8s_control
+k8s_worker
+
+[k8s_control]
+192.168.56.4
+
+[k8s_worker]
+192.168.56.5
+192.168.56.6

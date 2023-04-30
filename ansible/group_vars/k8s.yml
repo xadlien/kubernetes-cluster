@@ -1,0 +1,2 @@
+k8s_pod_network: 10.244.0.0/16
+k8s_token: 781292.db7bc3a58fc5f07e

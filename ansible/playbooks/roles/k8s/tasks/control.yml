@@ -1,0 +1,38 @@
+- name: init k8s cluster
+  shell: |
+    kubeadm init --token {{ k8s_token }} --apiserver-advertise-address {{ inventory_hostname }} --pod-network-cidr {{ k8s_pod_network }}
+  tags:
+  - k8s
+  - k8s_control
+
+- name: label control node
+  shell: |
+    kubectl --kubeconfig /etc/kubernetes/admin.conf label node {{ ansible_hostname }} node-role.kubernetes.io/etcd=etcd
+  tags:
+  - k8s
+  - k8s_control
+
+- name: install flannel to control node
+  shell: kubectl --kubeconfig /etc/kubernetes/admin.conf create -f https://raw.githubusercontent.com/coreos/flannel/master/Documentation/kube-flannel.yml
+  tags:
+  - k8s
+  - k8s_control
+
+- name: add vagrant .kube directory
+  file:
+    path: /home/vagrant/.kube
+    state: directory
+    owner: vagrant
+  tags:
+  - k8s
+  - k8s_control
+
+- name: copy kube config from /etc/ to vagrant
+  copy:
+    src: /etc/kubernetes/admin.conf
+    remote_src: true 
+    dest: /home/vagrant/.kube/config
+    owner: vagrant
+  tags:
+  - k8s
+  - k8s_control

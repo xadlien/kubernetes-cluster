@@ -1,0 +1,2 @@
+- name: join k8s cluster
+  shell: "kubeadm join 192.168.56.4:6443 --token {{ k8s_token }} --discovery-token-unsafe-skip-ca-verification"

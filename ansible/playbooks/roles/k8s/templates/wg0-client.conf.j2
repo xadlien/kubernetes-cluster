@@ -1,0 +1,9 @@
+[Interface]
+Address = {{ item.ip_address }}
+PrivateKey = {{ item.client_private_key }}
+
+[Peer]
+PublicKey = {{ server_public_key }}
+Endpoint = {{ inventory_hostname }}:51820
+AllowedIPs = {{ item.allowed_ips }}
+PersistentKeepalive = 21
